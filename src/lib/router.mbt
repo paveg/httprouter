@@ -31,7 +31,7 @@ pub fn Router::handle(
   self : Router,
   http_method : Method,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   let route = Route::new(http_method, path, handler)
   self.routes.push(route)
@@ -58,7 +58,7 @@ pub fn Router::handle(
 pub fn Router::get(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Get, path, handler)
 }
@@ -68,7 +68,7 @@ pub fn Router::get(
 pub fn Router::post(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Post, path, handler)
 }
@@ -78,7 +78,7 @@ pub fn Router::post(
 pub fn Router::put(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Put, path, handler)
 }
@@ -88,7 +88,7 @@ pub fn Router::put(
 pub fn Router::delete(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Delete, path, handler)
 }
@@ -98,7 +98,7 @@ pub fn Router::delete(
 pub fn Router::patch(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Patch, path, handler)
 }
@@ -108,7 +108,7 @@ pub fn Router::patch(
 pub fn Router::head(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Head, path, handler)
 }
@@ -118,7 +118,7 @@ pub fn Router::head(
 pub fn Router::options(
   self : Router,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.handle(Options, path, handler)
 }
@@ -127,7 +127,7 @@ pub fn Router::options(
 /// Set a custom 404 Not Found handler.
 pub fn Router::set_not_found(
   self : Router,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Unit {
   self.not_found_handler = Some(handler)
 }
@@ -136,7 +136,7 @@ pub fn Router::set_not_found(
 /// Set a custom 405 Method Not Allowed handler.
 pub fn Router::set_method_not_allowed(
   self : Router,
-  handler : (Array[Method]) -> Response
+  handler : (Array[Method]) -> Response,
 ) -> Unit {
   self.method_not_allowed_handler = Some(handler)
 }
@@ -147,7 +147,7 @@ pub fn Router::set_method_not_allowed(
 /// Return None to short-circuit the request.
 pub fn Router::add_middleware(
   self : Router,
-  mw : (Context) -> Context?
+  mw : (Context) -> Context?,
 ) -> Unit {
   self.middleware.push(mw)
 }
@@ -168,7 +168,7 @@ priv enum LookupResult {
 fn Router::lookup(
   self : Router,
   http_method : Method,
-  path : String
+  path : String,
 ) -> LookupResult {
   let allowed_methods : Array[Method] = []
   for route in self.routes {
@@ -200,10 +200,9 @@ pub fn Router::serve(self : Router, ctx : Context) -> Response {
   for mw in self.middleware {
     match mw(current_ctx) {
       Some(new_ctx) => current_ctx = new_ctx
-      None => {
+      None =>
         // Middleware short-circuited, return early
         return Response::text("Forbidden", status=403)
-      }
     }
   }
   // Look up route
@@ -237,7 +236,7 @@ pub fn Router::serve(self : Router, ctx : Context) -> Response {
 /// Create a router from an array of route definitions.
 /// Useful for declarative route configuration.
 pub fn Router::from_routes(
-  routes : Array[(Method, String, (Context) -> Response)]
+  routes : Array[(Method, String, (Context) -> Response)],
 ) -> Router {
   let router = Router::new()
   for tuple in routes {
