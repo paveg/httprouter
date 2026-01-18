@@ -8,6 +8,8 @@ pub enum Segment {
   Param(String)
   /// Wildcard segment (e.g., "*path") - captures rest of path
   Wildcard(String)
+  /// Prefix + parameter segment (e.g., "user_:name" -> prefix="user_", name="name")
+  PrefixParam(String, String)
 } derive(Eq, Show)
 
 ///|
@@ -37,6 +39,7 @@ pub fn Route::new(
 ///   "/users" -> [Static("users")]
 ///   "/users/:id" -> [Static("users"), Param("id")]
 ///   "/files/*path" -> [Static("files"), Wildcard("path")]
+///   "/user_:name" -> [PrefixParam("user_", "name")]
 fn parse_path(path : String) -> Array[Segment] {
   let segments : Array[Segment] = []
   let parts = split_path(path)
@@ -53,11 +56,45 @@ fn parse_path(path : String) -> Array[Segment] {
       let name = extract_name(part, 1)
       segments.push(Wildcard(name))
     } else {
-      // Static segment
-      segments.push(Static(part))
+      // Check for prefix:param pattern (e.g., "user_:name")
+      match find_colon_index(part) {
+        Some(colon_idx) => {
+          let prefix = extract_name(part, 0).to_array()[:colon_idx]
+            .iter()
+            .fold(init="", fn(acc, c) { acc + c.to_string() })
+          let name = extract_name(part, colon_idx + 1)
+          segments.push(PrefixParam(prefix, name))
+        }
+        None => segments.push(Static(part))
+      }
     }
   }
   segments
+}
+
+///|
+/// Find the index of ':' in a string (for prefix:param detection).
+fn find_colon_index(s : String) -> Int? {
+  for i = 0; i < s.length(); i = i + 1 {
+    if s[i].to_int() == ':'.to_int() {
+      return Some(i)
+    }
+  }
+  None
+}
+
+///|
+/// Check if a string starts with a prefix.
+fn starts_with(s : String, prefix : String) -> Bool {
+  if prefix.length() > s.length() {
+    return false
+  }
+  for i = 0; i < prefix.length(); i = i + 1 {
+    if s[i].to_int() != prefix[i].to_int() {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -135,6 +172,20 @@ pub fn Route::match_path(self : Route, request_path : String) -> MatchResult? {
         // Wildcard must be last segment
         return Some({ params, matched: true })
       }
+      PrefixParam(prefix, name) => {
+        if req_idx >= request_parts.length() {
+          return None
+        }
+        let part = request_parts[req_idx]
+        // Check if part starts with prefix
+        if not(starts_with(part, prefix)) {
+          return None
+        }
+        // Extract the value after the prefix
+        let value = extract_name(part, prefix.length())
+        params.add(name, value)
+        req_idx = req_idx + 1
+      }
     }
   }
   // All segments matched, check if request path is fully consumed
@@ -164,7 +215,7 @@ fn join_parts(parts : Array[String], from_idx : Int) -> String {
 pub fn Route::is_static(self : Route) -> Bool {
   for segment in self.segments {
     match segment {
-      Param(_) | Wildcard(_) => return false
+      Param(_) | Wildcard(_) | PrefixParam(_, _) => return false
       Static(_) => continue
     }
   }

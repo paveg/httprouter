@@ -18,24 +18,26 @@ After changes: `moon info && moon fmt` to update interfaces and format.
 
 ## Architecture
 
-This is an HTTP router library for MoonBit with linear O(n) route matching, prioritized by static routes.
+This is an HTTP router library for MoonBit with **radix tree O(k)** route matching (k = path depth).
 
 ### Core Types (src/lib/)
 
 ```
 Router
-├── routes: Array[Route]          # Routes sorted by priority
+├── tree: RadixTree               # Radix tree for O(k) lookup
 ├── middleware: Array[Middleware] # Global middleware chain
 ├── not_found_handler
 └── method_not_allowed_handler
 
-Route
-├── http_method: Method
-├── path: String
-├── segments: Array[Segment]      # Parsed for matching
-└── handler: (Context) -> Response
+RadixTree
+└── root: Node                    # Root node of the tree
 
-Segment = Static(String) | Param(String) | Wildcard(String)
+Node
+├── kind: NodeKind                # Static | PrefixParam | Param | Wildcard
+├── children: Array[Node]         # Sorted by priority
+└── handlers: Array[(Method, Handler)]
+
+NodeKind = Static | PrefixParam | Param | Wildcard  # Priority order
 
 Context                           # Request info
 ├── http_method, path, query
@@ -47,11 +49,13 @@ Response                          # HTTP response
 └── helpers: text(), json(), html(), redirect(), not_found()
 ```
 
-### Route Matching
+### Route Matching (Radix Tree)
 
-1. **Priority**: Static routes → more static segments → registration order
-2. **Patterns**: `/users` (static), `/users/:id` (param), `/files/*path` (wildcard)
-3. **Lookup**: Returns `Found | MethodNotAllowed | NotFound`
+1. **Complexity**: O(k) where k = path depth (vs O(n) linear scan)
+2. **Priority**: Static → PrefixParam → Param → Wildcard (enforced by tree structure)
+3. **Patterns**: `/users` (static), `/user_:name` (prefix+param), `/users/:id` (param), `/files/*path` (wildcard)
+4. **Lookup**: Returns `Found(handler, params) | MethodNotAllowed(methods) | NotFound`
+5. **Backtracking**: On match failure, removes params and tries next priority node
 
 ### File Conventions
 
@@ -66,4 +70,6 @@ Use `assert_eq!`, `assert_true!`, `assert_false!` macros. Prefer `inspect` with 
 
 ## Roadmap
 
-- マルチバックエンド対応を検討中（Cloudflare Workers / Wasm等）
+- [x] Radix tree optimization (O(n) → O(k))
+- [x] Cloudflare Workers support (examples/cloudflare-workers)
+- [ ] Multi-backend support (Wasm Native, Deno, etc.)
