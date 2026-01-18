@@ -1,7 +1,7 @@
 # httprouter
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![MoonBit](https://img.shields.io/badge/MoonBit-v0.1.0-purple.svg)](https://www.moonbitlang.com/)
+[![MoonBit](https://img.shields.io/badge/MoonBit-v0.2.0-purple.svg)](https://www.moonbitlang.com/)
 
 A high-performance HTTP router for [MoonBit](https://www.moonbitlang.com/), inspired by [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
 
