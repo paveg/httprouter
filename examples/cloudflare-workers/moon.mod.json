@@ -1,0 +1,7 @@
+{
+  "name": "example/cloudflare-workers",
+  "version": "0.0.1",
+  "deps": {
+    "paveg/httprouter": "0.1.0"
+  }
+}

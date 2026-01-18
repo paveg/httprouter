@@ -1,0 +1,13 @@
+{
+  "import": [
+    "paveg/httprouter/src/lib"
+  ],
+  "link": {
+    "js": {
+      "format": "esm",
+      "exports": [
+        "handle_request"
+      ]
+    }
+  }
+}
