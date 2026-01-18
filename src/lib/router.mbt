@@ -1,11 +1,12 @@
 ///|
-/// HTTP Router with linear matching.
+/// HTTP Router with radix tree matching.
 /// Routes are matched in priority order:
 /// 1. Static routes (no parameters) first
 /// 2. Routes with more static segments preferred
 /// 3. Registration order as tiebreaker
 pub struct Router {
-  routes : Array[Route]
+  /// Radix tree for efficient O(k) route matching
+  tree : RadixTree
   /// Custom 404 handler
   mut not_found_handler : ((Context) -> Response)?
   /// Custom 405 handler
@@ -18,7 +19,7 @@ pub struct Router {
 /// Create a new Router.
 pub fn Router::new() -> Router {
   {
-    routes: [],
+    tree: RadixTree::new(),
     not_found_handler: None,
     method_not_allowed_handler: None,
     middleware: [],
@@ -33,24 +34,8 @@ pub fn Router::handle(
   path : String,
   handler : (Context) -> Response,
 ) -> Unit {
-  let route = Route::new(http_method, path, handler)
-  self.routes.push(route)
-  // Sort routes by priority: static first, then by static segment count
-  self.routes.sort_by(fn(a, b) {
-    // Static routes come first
-    let a_static = a.is_static()
-    let b_static = b.is_static()
-    if a_static && not(b_static) {
-      return -1
-    }
-    if not(a_static) && b_static {
-      return 1
-    }
-    // More static segments = higher priority
-    let a_count = a.static_count()
-    let b_count = b.static_count()
-    b_count - a_count
-  })
+  // Insert directly into radix tree - priority is handled by tree structure
+  self.tree.insert(http_method, path, handler)
 }
 
 ///|
@@ -155,8 +140,8 @@ pub fn Router::add_middleware(
 ///|
 /// Route lookup result.
 priv enum LookupResult {
-  /// Found a matching route
-  Found(Route, Params)
+  /// Found a matching route with handler and params
+  Found((Context) -> Response, Params)
   /// Path matches but method doesn't (405)
   MethodNotAllowed(Array[Method])
   /// No matching path (404)
@@ -164,31 +149,16 @@ priv enum LookupResult {
 }
 
 ///|
-/// Look up a route for the given method and path.
+/// Look up a route for the given method and path using radix tree.
 fn Router::lookup(
   self : Router,
   http_method : Method,
   path : String,
 ) -> LookupResult {
-  let allowed_methods : Array[Method] = []
-  for route in self.routes {
-    match route.match_path(path) {
-      Some(result) => {
-        if route.http_method == http_method {
-          return Found(route, result.params)
-        }
-        // Path matches but method doesn't - collect allowed methods
-        if not(allowed_methods.contains(route.http_method)) {
-          allowed_methods.push(route.http_method)
-        }
-      }
-      None => continue
-    }
-  }
-  if allowed_methods.length() > 0 {
-    MethodNotAllowed(allowed_methods)
-  } else {
-    NotFound
+  match self.tree.lookup(http_method, path) {
+    RadixResult::Found(handler, params) => Found(handler, params)
+    RadixResult::MethodNotAllowed(methods) => MethodNotAllowed(methods)
+    RadixResult::NotFound => NotFound
   }
 }
 
@@ -207,7 +177,7 @@ pub fn Router::serve(self : Router, ctx : Context) -> Response {
   }
   // Look up route
   match self.lookup(current_ctx.http_method, current_ctx.path) {
-    Found(route, params) => {
+    Found(handler, params) => {
       // Create new context with params
       let ctx_with_params : Context = {
         http_method: current_ctx.http_method,
@@ -217,16 +187,16 @@ pub fn Router::serve(self : Router, ctx : Context) -> Response {
         headers: current_ctx.headers,
         body: current_ctx.body,
       }
-      (route.handler)(ctx_with_params)
+      handler(ctx_with_params)
     }
     MethodNotAllowed(allowed) =>
       match self.method_not_allowed_handler {
-        Some(handler) => handler(allowed)
+        Some(h) => h(allowed)
         None => Response::method_not_allowed(allowed)
       }
     NotFound =>
       match self.not_found_handler {
-        Some(handler) => handler(current_ctx)
+        Some(h) => h(current_ctx)
         None => Response::not_found()
       }
   }

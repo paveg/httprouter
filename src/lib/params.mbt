@@ -60,3 +60,34 @@ pub fn Params::is_empty(self : Params) -> Bool {
 pub fn Params::add(self : Params, key : String, value : String) -> Unit {
   self.items.push({ key, value })
 }
+
+///|
+/// Set a parameter value, updating if it exists or adding if not.
+pub fn Params::set(self : Params, key : String, value : String) -> Unit {
+  for i = 0; i < self.items.length(); i = i + 1 {
+    if self.items[i].key == key {
+      self.items[i] = { key, value }
+      return
+    }
+  }
+  self.items.push({ key, value })
+}
+
+///|
+/// Remove a parameter by key.
+pub fn Params::remove(self : Params, key : String) -> Unit {
+  let new_items : Array[Param] = []
+  for item in self.items {
+    if item.key != key {
+      new_items.push(item)
+    }
+  }
+  // Clear and repopulate (MoonBit arrays don't have direct assignment)
+  while self.items.length() > 0 {
+    let _ = self.items.pop()
+
+  }
+  for item in new_items {
+    self.items.push(item)
+  }
+}
