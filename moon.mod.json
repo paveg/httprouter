@@ -1,0 +1,10 @@
+{
+  "name": "paveg/httprouter",
+  "version": "0.1.0",
+  "readme": "README.md",
+  "repository": "https://github.com/paveg/httprouter",
+  "license": "Apache-2.0",
+  "keywords": ["http", "router", "web", "server"],
+  "description": "A high-performance HTTP router for MoonBit, inspired by julienschmidt/httprouter"
+}
+
