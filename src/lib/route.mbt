@@ -24,7 +24,7 @@ pub struct Route {
 pub fn Route::new(
   http_method : Method,
   path : String,
-  handler : (Context) -> Response
+  handler : (Context) -> Response,
 ) -> Route {
   let segments = parse_path(path)
   { http_method, path, segments, handler }
