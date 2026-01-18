@@ -299,7 +299,7 @@ fn RadixTree::lookup_node(
         // Backtrack
         params.remove(name)
       }
-      PrefixParam(prefix, name) => {
+      PrefixParam(prefix, name) =>
         // Check if segment starts with prefix
         if has_prefix(segment, prefix) {
           // Extract value after prefix
@@ -310,7 +310,6 @@ fn RadixTree::lookup_node(
             None => params.remove(name)
           }
         }
-      }
     }
   }
   None
@@ -337,8 +336,8 @@ fn extract_after_prefix(s : String, prefix_len : Int) -> String {
     return ""
   }
   s.to_array()[prefix_len:]
-    .iter()
-    .fold(init="", fn(acc, c) { acc + c.to_string() })
+  .iter()
+  .fold(init="", fn(acc, c) { acc + c.to_string() })
 }
 
 ///|
