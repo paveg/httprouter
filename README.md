@@ -44,7 +44,9 @@ moon check
 
 ## Features
 
+- [x] **Radix tree routing** - O(k) lookup where k = path depth
 - [x] Path parameters (`:id`)
+- [x] Prefix + parameter patterns (`user_:name`)
 - [x] Wildcard parameters (`*path`)
 - [x] Static route priority (static routes match before parameterized routes)
 - [x] HTTP method matching (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
@@ -52,7 +54,23 @@ moon check
 - [x] Global middleware support
 - [x] Response helpers (text, json, html, redirect)
 - [x] Fetch API adapter (Cloudflare Workers, Deno, etc.)
-- [ ] Radix tree optimization (planned)
+
+## Architecture
+
+```
+Router
+└── RadixTree
+    └── Node (root)
+        ├── Node (Static: "users")
+        │   ├── Node (Static: "me")      → GET handler
+        │   └── Node (Param: "id")       → GET, POST handlers
+        └── Node (Static: "files")
+            └── Node (Wildcard: "path")  → GET handler
+```
+
+**Priority Order**: Static → PrefixParam → Param → Wildcard
+
+Routes are stored in a radix tree (compact prefix tree) for efficient O(k) matching, where k is the number of path segments. The tree structure automatically enforces priority ordering—static routes are always checked before parameterized ones.
 
 ## Usage
 
